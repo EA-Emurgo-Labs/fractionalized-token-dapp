@@ -6,11 +6,7 @@ import { Inter } from "@next/font/google";
 import {
   applyParamsToScript,
   Data,
-  Lucid,
   MintingPolicy,
-  PolicyId,
-  TxHash,
-  Unit,
   utf8ToHex,
   Constr,
   Script,
@@ -23,6 +19,8 @@ export default function Mint() {
 
   const [name, setName] = useState("");
   const [fnftAmount, setFnftAmount] = useState(0);
+  const [fnftUnit, setFnftUnit] = useState("");
+  const [fnftAddr, setFnftAddr] = useState("");
 
   const fromHex = (hex: string) => Buffer.from(hex, "hex");
   const toHex = (bytes: number[]) => Buffer.from(bytes).toString("hex");
@@ -49,6 +47,8 @@ export default function Mint() {
         type: "PlutusV2",
         script: fnftJson.cborHex,
       });
+
+      setFnftAddr(fnftAddress);
 
       const fnftScript: Script = {
         type: "PlutusV2",
@@ -77,7 +77,7 @@ export default function Mint() {
       const utxoNFT = utxos.find((x) => {
         if (x.assets) {
           const keys = Object.keys(x.assets);
-          let key = keys.find((y) => y.includes(utf8ToHex("NFT1")));
+          let key = keys.find((y) => y.includes(utf8ToHex(name)));
           if (key != undefined) {
             unitNFT = key;
             return true;
@@ -101,6 +101,10 @@ export default function Mint() {
           .update(toHex(valueToHash), "hex")
           .digest("hex");
         const tokenFNFTName = hash;
+        const policyId = utils.getPolicyId(lucid, mintingPolicy);
+        const unitFNFT = policyId + tokenFNFTName;
+        setFnftUnit(unitFNFT);
+        console.log("1", fnftAmount);
         const nftTx = await utils.mintFNFT({
           lucid,
           address: fnftAddress,
@@ -109,6 +113,7 @@ export default function Mint() {
           redeemerMintFNFT,
           tokenFNFTName,
           utxo: utxoNFT,
+          fnftAmount,
         });
         showToaster("Minted NFT", `Transaction: ${nftTx}`);
       }
@@ -116,7 +121,15 @@ export default function Mint() {
       if (utility.isError(e)) showToaster("Could not mint NFT", e.message);
       else if (typeof e === "string") showToaster("Could not mint NFT", e);
     }
-  }, [lucid, account?.address, showToaster, name]);
+  }, [
+    lucid,
+    account?.address,
+    showToaster,
+    name,
+    fnftUnit,
+    fnftAddr,
+    fnftAmount,
+  ]);
 
   const burnFNFT = useCallback(async () => {
     try {
@@ -137,7 +150,7 @@ export default function Mint() {
       const utxoNFT = utxos.find((x) => {
         if (x.assets) {
           const keys = Object.keys(x.assets);
-          let key = keys.find((y) => y.includes(utf8ToHex("NFT1")));
+          let key = keys.find((y) => y.includes(utf8ToHex(name)));
           if (key != undefined) {
             unitNFT = key;
             return true;
@@ -167,8 +180,7 @@ export default function Mint() {
           ),
         };
 
-        let unitFNFT =
-          "ed0ac7e51d2ad9b7e0118a98ed574033a6a9cf9079e125ac29e0fc5c44c7d8504f5fb54f5cac442b17f085387bcf51c600bb7aab7a9ddd1f165503bf";
+        let unitFNFT = fnftUnit;
         const redeemerBurnFNFT = Data.to(new Constr(1, []));
 
         const nftTx = await utils.burnFNFT({
@@ -180,15 +192,27 @@ export default function Mint() {
           unitFNFT,
           utxo: utxoNFT,
           fnftScript,
+          fnftAmount,
         });
-
+        setFnftAddr("");
+        setFnftUnit("");
+        setFnftAddr("");
+        setFnftAmount(0);
         showToaster("Burned NFT", `Transaction: ${nftTx}`);
       }
     } catch (e) {
       if (utility.isError(e)) showToaster("Could not burn NFT", e.message);
       else if (typeof e === "string") showToaster("Could not burn NFT", e);
     }
-  }, [lucid, account?.address, showToaster, name]);
+  }, [
+    lucid,
+    account?.address,
+    showToaster,
+    name,
+    fnftUnit,
+    fnftAddr,
+    fnftAmount,
+  ]);
 
   const canMint = useMemo(
     () => lucid && account?.address && name,
@@ -234,8 +258,24 @@ export default function Mint() {
               step="1000"
               name="amount"
               value={fnftAmount}
-              onChange={(e) => setFnftAmount(parseInt(e.target.value))}
+              onChange={(e) =>
+                setFnftAmount(parseInt(e.target.value?.toString()))
+              }
             />
+          </label>
+        </div>
+
+        <div className="my-4">
+          <label className="flex flex-col w-40">
+            <span className="text-sm lowercase mb-1">Unit of FNFT</span>
+            <span className="text-sm lowercase mb-1">{fnftUnit}</span>
+          </label>
+        </div>
+
+        <div className="my-4">
+          <label className="flex flex-col w-40">
+            <span className="text-sm lowercase mb-1">Address of FNFT</span>
+            <span className="text-sm lowercase mb-1">{fnftAddr}</span>
           </label>
         </div>
 
