@@ -22,8 +22,8 @@ const useTransaction = () => {
 
       const txHash = await signedTx.submit()
 
-      setLovelace(0)
-      setToAccount("")
+      // setLovelace(0)
+      // setToAccount("")
       setSuccessMessage(`Transaction submitted with hash ${txHash}`)
     } catch (e) {
       if (e instanceof Error) setError(e)
