@@ -116,18 +116,32 @@ export const burnFNFT = async ({ lucid, address, unitNFT, mintingPolicy, redeeme
   return txHash
 }
 
-export const withdrawFNFT = async ({ lucid, address, unitNFT, unitFNFT, redeemerWithdrawFNFT,  utxo, fnftScript, fnftAmount, fnftAddress }: WithdrawOptions): Promise<TxHash> => {
-  unitNFT = '37ab27a5bdceb3b82583b66788baa912e520c72f6df13318b22f6942' + '4e465431'
-  unitFNFT = 'ed0ac7e51d2ad9b7e0118a98ed574033a6a9cf9079e125ac29e0fc5cd49ca7d8847a47a280c6140ebb63d7a5d09ebd7149040ba6d56103f134f7610f'
+export const withdrawFNFT = async ({ lucid, address, redeemerWithdrawFNFT,  utxo, fnftScript, fnftAmount, fnftAddress }: WithdrawOptions): Promise<TxHash> => {
+  // unitNFT = '37ab27a5bdceb3b82583b66788baa912e520c72f6df13318b22f6942' + '4e465431'
+  // unitFNFT = 'ed0ac7e51d2ad9b7e0118a98ed574033a6a9cf9079e125ac29e0fc5c9235833172a38fe90c5083794d3bbb596db2a232c0d910a4a83ed1429df1c8af'
   fnftAddress = 'addr_test1wq4k3vzhmjdkt8pls9472hcptredft8953s284qppr8ehkcldcrx9'
-  const policyId = unitFNFT.substring(0,56)
-  const unitValidation = getUnit(policyId, 'FNFT_VALIDITY')
+ 
   let fnftAmountParam = BigInt(fnftAmount)
-  let remain = BigInt(200 - fnftAmount)
+  // let remain = BigInt(200 - fnftAmount)
+  let datumBN = await lucid.datumOf(utxo);
+  let fields = Data.from(datumBN).fields;
+  let unitFNFT = fields[0] + fields[1];
+  let unitNFT = fields[3] + fields[4];
+  const policyId = unitFNFT.substring(0,56)
+  let remainOld = BigInt(fields[5]);
+  let minted = BigInt(fields[2]);
+  let remain = remainOld - fnftAmountParam
+  const unitValidation = getUnit(policyId, 'FNFT_VALIDITY')
+
+  console.log(remainOld,minted,remain)
 
   const datum = Data.to(
-    new Constr(0, [ policyId, unitFNFT.substring(56), BigInt(200), unitNFT.substring(0,56), unitNFT.substring(56), remain])
+    new Constr(0, [ policyId, unitFNFT.substring(56), minted, unitNFT.substring(0,56), unitNFT.substring(56), remain])
   );
+
+  // const datum = Data.to(
+  //   new Constr(0, [ policyId, unitFNFT.substring(56), BigInt(200), unitNFT.substring(0,56), unitNFT.substring(56), remain])
+  // );
 
   console.log(utxo, address, fnftAmount)
 
@@ -155,6 +169,14 @@ export const depositFNFT = async ({ lucid, address, unitNFT, unitFNFT, redeemerD
   const unitValidation = getUnit(policyId, 'FNFT_VALIDITY')
   let fnftAmountParam = BigInt(fnftAmount)
   let remain = BigInt(200)
+  // let datumBN = await lucid.datumOf(utxo);
+  // let remainOld = BigInt(Data.from(datumBN).fields[5]);
+  // let minted = BigInt(Data.from(datumBN).fields[2]);
+  // let remain = remainOld + fnftAmountParam
+
+  // const datum = Data.to(
+  //   new Constr(0, [ policyId, unitFNFT.substring(56), minted, unitNFT.substring(0,56), unitNFT.substring(56), remain])
+  // );
 
   const datum = Data.to(
     new Constr(0, [ policyId, unitFNFT.substring(56), BigInt(200), unitNFT.substring(0,56), unitNFT.substring(56), remain])
