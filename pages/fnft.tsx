@@ -10,6 +10,7 @@ import {
   utf8ToHex,
   Constr,
   Script,
+  UTxO,
 } from "lucid-cardano";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -19,8 +20,9 @@ export default function Mint() {
 
   const [name, setName] = useState("");
   const [fnftAmount, setFnftAmount] = useState(0);
-  const [fnftUnit, setFnftUnit] = useState("");
   const [fnftAddr, setFnftAddr] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [depositAmount, setDepositAmount] = useState(0);
 
   const fromHex = (hex: string) => Buffer.from(hex, "hex");
   const toHex = (bytes: number[]) => Buffer.from(bytes).toString("hex");
@@ -103,7 +105,6 @@ export default function Mint() {
         const tokenFNFTName = hash;
         const policyId = utils.getPolicyId(lucid, mintingPolicy);
         const unitFNFT = policyId + tokenFNFTName;
-        setFnftUnit(unitFNFT);
         console.log("1", fnftAmount);
         const nftTx = await utils.mintFNFT({
           lucid,
@@ -121,15 +122,7 @@ export default function Mint() {
       if (utility.isError(e)) showToaster("Could not mint NFT", e.message);
       else if (typeof e === "string") showToaster("Could not mint NFT", e);
     }
-  }, [
-    lucid,
-    account?.address,
-    showToaster,
-    name,
-    fnftUnit,
-    fnftAddr,
-    fnftAmount,
-  ]);
+  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
 
   const burnFNFT = useCallback(async () => {
     try {
@@ -180,22 +173,17 @@ export default function Mint() {
           ),
         };
 
-        let unitFNFT = fnftUnit;
         const redeemerBurnFNFT = Data.to(new Constr(1, []));
 
         const nftTx = await utils.burnFNFT({
           lucid,
           address: account.address,
-          unitNFT,
           mintingPolicy,
           redeemerBurnFNFT,
-          unitFNFT,
           utxo: utxoNFT,
           fnftScript,
-          fnftAmount,
         });
         setFnftAddr("");
-        setFnftUnit("");
         setFnftAddr("");
         setFnftAmount(0);
         showToaster("Burned NFT", `Transaction: ${nftTx}`);
@@ -204,15 +192,108 @@ export default function Mint() {
       if (utility.isError(e)) showToaster("Could not burn NFT", e.message);
       else if (typeof e === "string") showToaster("Could not burn NFT", e);
     }
-  }, [
-    lucid,
-    account?.address,
-    showToaster,
-    name,
-    fnftUnit,
-    fnftAddr,
-    fnftAmount,
-  ]);
+  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
+
+  const withdrawFNFT = useCallback(async () => {
+    try {
+      if (!lucid || !account?.address) return;
+
+      const fnftAddress = await lucid.utils.validatorToAddress({
+        type: "PlutusV2",
+        script: fnftJson.cborHex,
+      });
+
+      const fnftScript: Script = {
+        type: "PlutusV2",
+        script: fnftJson.cborHex,
+      };
+
+      const utxos = await lucid.utxosAt(fnftAddress);
+      const utxoNFT = utxos.find((x) => {
+        if (x.assets) {
+          const keys = Object.keys(x.assets);
+          let key = keys.find((y) => y.includes(utf8ToHex(name)));
+          if (key != undefined) {
+            return true;
+          }
+          return false;
+        }
+        return false;
+      });
+
+      if (!utxoNFT) {
+        showToaster("Minted NFT", "can not found NFT");
+      } else {
+        let redeemerWithdrawFNFT = Data.to(
+          new Constr(0, [BigInt(withdrawAmount)])
+        );
+        const nftTx = await utils.withdrawFNFT({
+          lucid,
+          address: account.address,
+          redeemerWithdrawFNFT,
+          utxo: utxoNFT,
+          fnftScript,
+          fnftAmount: withdrawAmount,
+          fnftAddress,
+        });
+        showToaster("Withdraw NFT", `Transaction: ${nftTx}`);
+      }
+    } catch (e) {
+      if (utility.isError(e)) showToaster("Could not burn NFT", e.message);
+      else if (typeof e === "string") showToaster("Could not burn NFT", e);
+    }
+  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
+
+  const depositFNFT = useCallback(async () => {
+    try {
+      if (!lucid || !account?.address) return;
+
+      const fnftAddress = await lucid.utils.validatorToAddress({
+        type: "PlutusV2",
+        script: fnftJson.cborHex,
+      });
+
+      const fnftScript: Script = {
+        type: "PlutusV2",
+        script: fnftJson.cborHex,
+      };
+      let unitNFT = null;
+      const utxos = await lucid.utxosAt(fnftAddress);
+      const utxoNFT = utxos.find((x) => {
+        if (x.assets) {
+          const keys = Object.keys(x.assets);
+          let key = keys.find((y) => y.includes(utf8ToHex(name)));
+          if (key != undefined) {
+            unitNFT = key;
+            return true;
+          }
+          return false;
+        }
+        return false;
+      });
+
+      if (!utxoNFT) {
+        showToaster("Deposit FNFT", "can not found NFT");
+      } else {
+        let redeemerDepositFNFT = Data.to(
+          new Constr(2, [BigInt(depositAmount)])
+        );
+        const nftTx = await utils.depositFNFT({
+          lucid,
+          address: account.address,
+          redeemerDepositFNFT,
+          utxo: utxoNFT,
+          fnftScript,
+          fnftAmount: depositAmount,
+          fnftAddress,
+        });
+        showToaster("Deposit NFT", `Transaction: ${nftTx}`);
+      }
+    } catch (e) {
+      if (utility.isError(e)) showToaster("Could not burn NFT", e.message);
+      else if (typeof e === "string") showToaster("Could not burn NFT", e);
+    }
+  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
 
   const canMint = useMemo(
     () => lucid && account?.address && name,
@@ -249,7 +330,7 @@ export default function Mint() {
 
         <div className="my-4">
           <label className="flex flex-col w-40">
-            <span className="text-sm lowercase mb-1">Amount of FNFT</span>
+            <span className="text-sm lowercase mb-1">Mint amount of FNFT</span>
 
             <input
               className="rounded py-1 px-2 text-gray-800 border"
@@ -267,15 +348,51 @@ export default function Mint() {
 
         <div className="my-4">
           <label className="flex flex-col w-40">
-            <span className="text-sm lowercase mb-1">Unit of FNFT</span>
-            <span className="text-sm lowercase mb-1">{fnftUnit}</span>
+            <span className="text-sm lowercase mb-1">Address of FNFT</span>
+            <span className="text-sm lowercase mb-1">{fnftAddr}</span>
+            <input
+              className="rounded py-1 px-2 text-gray-800 border"
+              name="message"
+              placeholder="Address NFT"
+              value={fnftAddr || ""}
+              onChange={(e) => setFnftAddr(e.target.value?.toString())}
+            />
           </label>
         </div>
 
         <div className="my-4">
           <label className="flex flex-col w-40">
-            <span className="text-sm lowercase mb-1">Address of FNFT</span>
-            <span className="text-sm lowercase mb-1">{fnftAddr}</span>
+            <span className="text-sm lowercase mb-1">Withdraw Amount</span>
+
+            <input
+              className="rounded py-1 px-2 text-gray-800 border"
+              type="number"
+              min="0"
+              step="1000"
+              name="amount"
+              value={withdrawAmount}
+              onChange={(e) =>
+                setWithdrawAmount(parseInt(e.target.value || "0"))
+              }
+            />
+          </label>
+        </div>
+
+        <div className="my-4">
+          <label className="flex flex-col w-40">
+            <span className="text-sm lowercase mb-1">Deposit Amount</span>
+
+            <input
+              className="rounded py-1 px-2 text-gray-800 border"
+              type="number"
+              min="0"
+              step="1000"
+              name="amount"
+              value={depositAmount}
+              onChange={(e) =>
+                setDepositAmount(parseInt(e.target.value || "0"))
+              }
+            />
           </label>
         </div>
 
@@ -300,6 +417,26 @@ export default function Mint() {
             }}
           >
             burn
+          </button>
+
+          <button
+            className="border ml-4 hover:bg-blue-400 text-white w-40 py-2 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:text-gray-200 rounded bg-blue-300 disabled:bg-blue-200 dark:bg-white dark:text-gray-800 dark:disabled:bg-white dark:hover:bg-white font-bold uppercase"
+            onClick={() => {
+              hideToaster();
+              withdrawFNFT();
+            }}
+          >
+            withdraw
+          </button>
+
+          <button
+            className="border ml-4 hover:bg-blue-400 text-white w-40 py-2 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:text-gray-200 rounded bg-blue-300 disabled:bg-blue-200 dark:bg-white dark:text-gray-800 dark:disabled:bg-white dark:hover:bg-white font-bold uppercase"
+            onClick={() => {
+              hideToaster();
+              depositFNFT();
+            }}
+          >
+            deposit
           </button>
         </div>
       </div>
