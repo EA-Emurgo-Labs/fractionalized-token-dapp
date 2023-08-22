@@ -129,7 +129,7 @@ export const withdrawFNFT = async ({ lucid, address, redeemerWithdrawFNFT,  utxo
   let remain = remainOld - fnftAmountParam
   const unitValidation = getUnit(policyId, 'FNFT_VALIDITY')
 
-  console.log(remainOld,minted,remain)
+  console.log(remainOld,minted,remain, fnftAmount)
 
   const datum = Data.to(
     new Constr(0, [ policyId, unitFNFT.substring(56), minted, unitNFT.substring(0,56), unitNFT.substring(56), remain])

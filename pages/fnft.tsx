@@ -209,13 +209,11 @@ export default function Mint() {
       };
 
       const utxos = await lucid.utxosAt(fnftAddress);
-      let unitNFT = "";
       const utxoNFT = utxos.find((x) => {
         if (x.assets) {
           const keys = Object.keys(x.assets);
           let key = keys.find((y) => y.includes(utf8ToHex(name)));
           if (key != undefined) {
-            unitNFT = key;
             return true;
           }
           return false;
@@ -332,7 +330,7 @@ export default function Mint() {
 
         <div className="my-4">
           <label className="flex flex-col w-40">
-            <span className="text-sm lowercase mb-1">Amount of FNFT</span>
+            <span className="text-sm lowercase mb-1">Mint amount of FNFT</span>
 
             <input
               className="rounded py-1 px-2 text-gray-800 border"
@@ -355,7 +353,7 @@ export default function Mint() {
             <input
               className="rounded py-1 px-2 text-gray-800 border"
               name="message"
-              placeholder="My NFT name"
+              placeholder="Address NFT"
               value={fnftAddr || ""}
               onChange={(e) => setFnftAddr(e.target.value?.toString())}
             />
@@ -374,7 +372,7 @@ export default function Mint() {
               name="amount"
               value={withdrawAmount}
               onChange={(e) =>
-                setWithdrawAmount(parseInt(e.target.value?.toString()))
+                setWithdrawAmount(parseInt(e.target.value || "0"))
               }
             />
           </label>
@@ -392,7 +390,7 @@ export default function Mint() {
               name="amount"
               value={depositAmount}
               onChange={(e) =>
-                setDepositAmount(parseInt(e.target.value?.toString()))
+                setDepositAmount(parseInt(e.target.value || "0"))
               }
             />
           </label>
