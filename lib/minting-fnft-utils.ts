@@ -114,7 +114,7 @@ export const burnFNFT = async ({ lucid, address, mintingPolicy, redeemerBurnFNFT
 }
 
 export const withdrawFNFT = async ({ lucid, address, redeemerWithdrawFNFT,  utxo, fnftScript, fnftAmount, fnftAddress }: WithdrawOptions): Promise<TxHash> => {
-  fnftAddress = 'addr_test1wq4k3vzhmjdkt8pls9472hcptredft8953s284qppr8ehkcldcrx9'
+  // fnftAddress = 'addr_test1wq4k3vzhmjdkt8pls9472hcptredft8953s284qppr8ehkcldcrx9'
  
   let fnftAmountParam = BigInt(fnftAmount)
 
@@ -154,7 +154,7 @@ export const withdrawFNFT = async ({ lucid, address, redeemerWithdrawFNFT,  utxo
 }
 
 export const depositFNFT = async ({ lucid, address, redeemerDepositFNFT,  utxo, fnftScript, fnftAmount, fnftAddress }: DepositOptions): Promise<TxHash> => {
-  fnftAddress = 'addr_test1wq4k3vzhmjdkt8pls9472hcptredft8953s284qppr8ehkcldcrx9'
+  // fnftAddress = 'addr_test1wq4k3vzhmjdkt8pls9472hcptredft8953s284qppr8ehkcldcrx9'
   let fnftAmountParam = BigInt(fnftAmount)
 
   let datumBN = await lucid.datumOf(utxo);
@@ -167,6 +167,8 @@ export const depositFNFT = async ({ lucid, address, redeemerDepositFNFT,  utxo, 
   let minted = BigInt(fields[2]);
   let remain = remainOld + fnftAmountParam
   const unitValidation = getUnit(policyId, 'FNFT_VALIDITY')
+
+  console.log(remainOld, remain, minted, fnftAmountParam)
 
   const utxoUsers = await lucid.utxosAt(address);
   const utxoFNFT = utxoUsers.find((x) => {

@@ -1,5 +1,5 @@
 import * as utils from "lib/minting-fnft-utils";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useCardano, utility } from "use-cardano";
 
 import { Inter } from "@next/font/google";
@@ -10,7 +10,6 @@ import {
   utf8ToHex,
   Constr,
   Script,
-  UTxO,
 } from "lucid-cardano";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,6 +22,7 @@ export default function Mint() {
   const [fnftAddr, setFnftAddr] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState(0);
   const [depositAmount, setDepositAmount] = useState(0);
+  const [stateDatum, setStateDatum] = useState("");
 
   const fromHex = (hex: string) => Buffer.from(hex, "hex");
   const toHex = (bytes: number[]) => Buffer.from(bytes).toString("hex");
@@ -133,6 +133,8 @@ export default function Mint() {
         script: fnftJson.cborHex,
       });
 
+      setFnftAddr(fnftAddress);
+
       const fnftScript: Script = {
         type: "PlutusV2",
         script: fnftJson.cborHex,
@@ -203,6 +205,8 @@ export default function Mint() {
         script: fnftJson.cborHex,
       });
 
+      setFnftAddr(fnftAddress);
+
       const fnftScript: Script = {
         type: "PlutusV2",
         script: fnftJson.cborHex,
@@ -253,18 +257,19 @@ export default function Mint() {
         script: fnftJson.cborHex,
       });
 
+      setFnftAddr(fnftAddress);
+
       const fnftScript: Script = {
         type: "PlutusV2",
         script: fnftJson.cborHex,
       };
-      let unitNFT = null;
+
       const utxos = await lucid.utxosAt(fnftAddress);
       const utxoNFT = utxos.find((x) => {
         if (x.assets) {
           const keys = Object.keys(x.assets);
           let key = keys.find((y) => y.includes(utf8ToHex(name)));
           if (key != undefined) {
-            unitNFT = key;
             return true;
           }
           return false;
@@ -295,6 +300,42 @@ export default function Mint() {
     }
   }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
 
+  const showStateFNFT = useCallback(async () => {
+    if (!lucid || !account?.address || !name) return;
+
+    const fnftAddress = await lucid.utils.validatorToAddress({
+      type: "PlutusV2",
+      script: fnftJson.cborHex,
+    });
+
+    setFnftAddr(fnftAddress);
+
+    const utxos = await lucid.utxosAt(fnftAddress);
+    let unitNFT = "";
+    const utxoNFT = utxos.find((x) => {
+      if (x.assets) {
+        const keys = Object.keys(x.assets);
+        let key = keys.find((y) => y.includes(utf8ToHex(name)));
+        if (key != undefined) {
+          unitNFT = key;
+          return true;
+        }
+        return false;
+      }
+      return false;
+    });
+
+    if (!utxoNFT) {
+      showToaster("Minted NFT", "can not found NFT");
+    } else {
+      let datumBN = await lucid.datumOf(utxoNFT);
+      let datumObject: Constr<string> = Data.from(datumBN);
+      let fields = datumObject.fields;
+      let stateString = `FNFT policy: ${fields[0]}, FNFT name: ${fields[1]}, Minted amount: ${fields[2]}, NFT policy: ${fields[3]}, NFT name: ${fields[4]}, Remained FNFT: ${fields[5]}}`;
+      setStateDatum(stateString);
+    }
+  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
+
   const canMint = useMemo(
     () => lucid && account?.address && name,
     [lucid, account?.address, name]
@@ -315,7 +356,7 @@ export default function Mint() {
 
       <div className="text-left my-8">
         <div className="my-4">
-          <label className="flex flex-col w-100">
+          <label className="flex flex-col w-40">
             <span className="text-sm lowercase mb-1">NFT name</span>
 
             <input
@@ -350,13 +391,13 @@ export default function Mint() {
           <label className="flex flex-col w-40">
             <span className="text-sm lowercase mb-1">Address of FNFT</span>
             <span className="text-sm lowercase mb-1">{fnftAddr}</span>
-            <input
-              className="rounded py-1 px-2 text-gray-800 border"
-              name="message"
-              placeholder="Address NFT"
-              value={fnftAddr || ""}
-              onChange={(e) => setFnftAddr(e.target.value?.toString())}
-            />
+          </label>
+        </div>
+
+        <div className="my-4">
+          <label className="flex flex-col w-100">
+            <span className="text-sm lowercase mb-1">Datum state</span>
+            <span className="text-sm lowercase mb-1">{stateDatum}</span>
           </label>
         </div>
 
@@ -437,6 +478,16 @@ export default function Mint() {
             }}
           >
             deposit
+          </button>
+
+          <button
+            className="border ml-4 hover:bg-blue-400 text-white w-40 py-2 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:text-gray-200 rounded bg-blue-300 disabled:bg-blue-200 dark:bg-white dark:text-gray-800 dark:disabled:bg-white dark:hover:bg-white font-bold uppercase"
+            onClick={() => {
+              hideToaster();
+              showStateFNFT();
+            }}
+          >
+            show state
           </button>
         </div>
       </div>
