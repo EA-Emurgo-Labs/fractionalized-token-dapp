@@ -135,15 +135,15 @@ export const withdrawFNFT = async ({ lucid, address, redeemerWithdrawFNFT,  utxo
     new Constr(0, [ policyId, unitFNFT.substring(56), minted, unitNFT.substring(0,56), unitNFT.substring(56), remain])
   );
 
-  console.log(utxo, address, fnftAmount)
+  console.log("withdraw", utxo, address, fnftAmount)
 
   const tx = await lucid
   .newTx()
   .readFrom([utxo])
   .collectFrom([utxo], redeemerWithdrawFNFT)
   .attachSpendingValidator(fnftScript)
-  .payToContract(fnftAddress, {inline: datum}, {[unitFNFT]: remain, [unitNFT]: 1n, [unitValidation]: 1n})
   .payToAddress(address,{[unitFNFT]: fnftAmountParam})
+  .payToContract(fnftAddress, {inline: datum}, {[unitFNFT]: remain, [unitNFT]: 1n, [unitValidation]: 1n})
   .complete()
 
   const signedTx = await tx.sign().complete()
@@ -190,7 +190,7 @@ export const depositFNFT = async ({ lucid, address, redeemerDepositFNFT,  utxo, 
     new Constr(0, [ policyId, unitFNFT.substring(56), minted, unitNFT.substring(0,56), unitNFT.substring(56), remain])
   );
 
-  console.log(utxoFNFT, utxo, address, fnftAmount)
+  console.log("deposit",utxoFNFT, utxo, address, fnftAmount)
 
   const tx = await lucid
   .newTx()

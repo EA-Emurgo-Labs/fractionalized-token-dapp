@@ -14,7 +14,7 @@ import {
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Mint() {
+export default function Fnft() {
   const { lucid, account, showToaster, hideToaster } = useCardano();
 
   const [name, setName] = useState("");
@@ -103,8 +103,6 @@ export default function Mint() {
           .update(toHex(valueToHash), "hex")
           .digest("hex");
         const tokenFNFTName = hash;
-        const policyId = utils.getPolicyId(lucid, mintingPolicy);
-        const unitFNFT = policyId + tokenFNFTName;
         console.log("1", fnftAmount);
         const nftTx = await utils.mintFNFT({
           lucid,
@@ -246,7 +244,7 @@ export default function Mint() {
       if (utility.isError(e)) showToaster("Could not burn NFT", e.message);
       else if (typeof e === "string") showToaster("Could not burn NFT", e);
     }
-  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
+  }, [lucid, account?.address, showToaster, name, withdrawAmount, fnftJson]);
 
   const depositFNFT = useCallback(async () => {
     try {
@@ -298,7 +296,7 @@ export default function Mint() {
       if (utility.isError(e)) showToaster("Could not burn NFT", e.message);
       else if (typeof e === "string") showToaster("Could not burn NFT", e);
     }
-  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
+  }, [lucid, account?.address, showToaster, name, depositAmount, fnftJson]);
 
   const showStateFNFT = useCallback(async () => {
     if (!lucid || !account?.address || !name) return;
@@ -334,7 +332,7 @@ export default function Mint() {
       let stateString = `FNFT policy: ${fields[0]}, FNFT name: ${fields[1]}, Minted amount: ${fields[2]}, NFT policy: ${fields[3]}, NFT name: ${fields[4]}, Remained FNFT: ${fields[5]}}`;
       setStateDatum(stateString);
     }
-  }, [lucid, account?.address, showToaster, name, fnftAddr, fnftAmount]);
+  }, [lucid, account?.address, showToaster, name, fnftJson]);
 
   const canMint = useMemo(
     () => lucid && account?.address && name,
